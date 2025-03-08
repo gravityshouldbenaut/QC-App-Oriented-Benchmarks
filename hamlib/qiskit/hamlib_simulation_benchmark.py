@@ -18,6 +18,7 @@ import time
 import math
 import numpy as np
 
+
 sys.path[1:1] = ["_common", "_common/qiskit"]
 sys.path[1:1] = ["../../_common", "../../_common/qiskit"]
 sys.path[1:1] = ["../_common"]
@@ -32,6 +33,7 @@ from hamlib_utils import create_full_filenames, construct_dataset_name
 from hamiltonian_simulation_exact import HamiltonianSimulationExact, HamiltonianSimulation_Noiseless
 
 
+
 # Benchmark Name
 benchmark_name = "Hamiltonian Simulation"
 
@@ -41,6 +43,9 @@ verbose = False
 
 # contains the correct bitstring for a random pauli circuit
 bitstring_dict = {}
+
+
+
 
 # Creates a key for distribution of initial state for method = 3.
 def key_from_initial_state(num_qubits, num_shots, init_state, random_pauli_flag):
@@ -225,6 +230,90 @@ def print_top_measurements(label, counts, top_n):
     else:
         print(" }")
 
+#Samarth: add estimator
+# Function to estimate expectation value for an array of weighted Pauli strings, using Estimator class
+from qiskit_aer import Aer
+from qiskit_aer import Aer 
+from qiskit_ibm_runtime import EstimatorV2 as Estimator
+def estimate_expectation_with_estimator(qc, H_op):
+
+
+    # Create an Estimator
+    backend = Aer.get_backend("qasm_simulator")
+    estimator = Estimator(mode=backend)
+    
+    # Measure energy	
+    job = estimator.run([(qc, H_op)])
+    result = job.result()[0]	
+    
+    
+    measured_energy = result.values[0]
+    print("energy", measured_energy)
+    
+    return measured_energy
+    
+  
+#Samarth: add expectation energy calculator from observables_generalized
+
+def expectation_value(counts, nshots, pPauli):
+    
+    """
+    counts: Measured bistring counts. e.g. {'01':500, '10':500}
+    nshots: Total number of shots
+    Pauli:  The Pauli operator e.g. "XX"
+    """
+    
+    # initialize expectation value
+    exp_val = 0.
+    
+    # loop over measurement results
+    for measurement in counts:
+        # local parity
+        loc_parity = 1.
+        # loop over qubits
+        for pauli_ind, pauli in enumerate(reversed(pPauli)):
+            # skip identity
+            if pauli == 'I':
+                continue
+            # parity
+            loc_parity *= (-2 * float(measurement[::-1][pauli_ind]) + 1) # this turns 0 -> 1, 1 -> -1
+        
+        # accumulate expectation value
+        exp_val += loc_parity * counts[measurement]
+    
+    # normalization
+    exp_val /= nshots
+    
+    return exp_val
+    
+# Function to estimate expectation value for an array of weighted Pauli strings
+def estimate_expectation(counts, H_terms, num_shots=10000):
+    
+    # Function to estimate expectation value of a Pauli string
+    def estimate_expectation_term(counts, pauli_string, num_shots=10000):
+
+        # from the counts and pauli_string, compute the expectation
+        expectation = expectation_value(counts, num_shots, pauli_string)
+        
+        return expectation
+    
+    # Measure energy
+    total_energy = 0
+    coeffs = H_terms.coeffs
+    paulis = H_terms.paulis
+    
+    for index in range(0, len(coeffs)):
+    	exp_val = estimate_expectation_term(counts, paulis[index])
+    	total_energy += coeffs[index] * exp_val
+    
+    #for coeff, pauli in H_terms.coeffs, H_terms.paulis: 
+     #   exp_val = estimate_expectation_term(counts, pauli)
+     #   total_energy += coeff * exp_val
+      #  if verbose: print(f"... exp value for pauli term = ({coeff}, {pauli_string}), exp = {exp_val}")
+
+    return total_energy
+        
+
 
 ############### Benchmark Loop
 
@@ -285,6 +374,11 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
         None
     """
     
+    #Samarth: Setting up arrays of fidelities, number of qubits, and energies
+    fidelities = []
+    number_of_qubits = []
+    energies = []
+    
     print(f"{benchmark_name} Benchmark Program - Qiskit")
     
     # Create context identifier
@@ -302,11 +396,11 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
         hamlib_simulation_kernel.filename = create_full_filenames(hamiltonian)
         hamlib_simulation_kernel.dataset_name_template = construct_dataset_name(hamlib_simulation_kernel.filename)
     except ValueError:
-        print(f"ERROR: cannot load HamLib data for Hamiltonian: {hamiltonian}")
+        print(f"ERROR: cannot load HamLib data or JSON paramaters for Hamiltonian: {hamiltonian}")
         return
     
     if hamlib_simulation_kernel.dataset_name_template == "File key not found in data":
-        print(f"ERROR: cannot load HamLib data for Hamiltonian: {hamiltonian}")
+        print(f"ERROR: cannot load HamLib data for Hamiltonian:{hamiltonian} due to JSON template not including hamiltonian info")
         return
     
     # Set default parameter values for the hamiltonians
@@ -333,6 +427,16 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
         # Determine fidelity of result set
         num_qubits = int(num_qubits)
         counts, expectation_a = analyze_and_print_result(qc, result, num_qubits, type, num_shots, hamiltonian, method, random_pauli_flag, do_sqrt_fidelity, init_state)
+       
+       	#Samarth: added fidelity and num_qubits to 2 separate arrays to allow for plots of each
+       	fidelities.append(expectation_a["fidelity"])
+       	number_of_qubits.append(num_qubits)
+        #Samarth: add energy
+        _, _, ham_op, _ = create_circuit(n_spins=num_qubits, init_state=init_state)
+        energy = estimate_expectation(counts, ham_op)
+        print("energy", energy)
+        energies.append(energy)
+    	
         metrics.store_metric(num_qubits, type, 'fidelity', expectation_a)
 
     # Initialize execution module using the execution result handler above and specified backend_id
@@ -401,8 +505,24 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
        
     # Plot metrics for all circuit sizes
     options = {"ham": hamiltonian, "method":method, "shots": num_shots, "reps": max_circuits}
+    
+    
+    
     metrics.plot_metrics(f"Benchmark Results - {benchmark_name} - Qiskit", options=options)
 
+    #Samarth: make plot of number of qubits and fidelitity for each qubit run
+    import matplotlib.pyplot as plt
+    plt.plot(number_of_qubits, fidelities) 
+    plt.title("Qubits vs Fidelity for This Set of Trotter Steps")
+    plt.xlabel("Number of Qubits per Run")
+    plt.ylabel("Fidelity per Run")
+    plt.show()
+    
+    plt.plot(number_of_qubits, energies) 
+    plt.title("Qubits vs Energy for This Set of Trotter Steps")
+    plt.xlabel("Number of Qubits per Run")
+    plt.ylabel("Energy per Run")
+    plt.show()
 
 #######################
 # MAIN
@@ -441,6 +561,8 @@ def get_args():
  
 # if main, execute method
 if __name__ == '__main__':   
+
+
     args = get_args()
     hamlib_simulation_kernel.global_U = args.global_U
     hamlib_simulation_kernel.global_enc = args.global_enc
@@ -464,6 +586,7 @@ if __name__ == '__main__':
     if args.num_qubits > 0: args.min_qubits = args.max_qubits = args.num_qubits
     
     # execute benchmark program
+    
     run(min_qubits=args.min_qubits, max_qubits=args.max_qubits,
         skip_qubits=args.skip_qubits, max_circuits=args.max_circuits,
         num_shots=args.num_shots,
@@ -481,4 +604,3 @@ if __name__ == '__main__':
         exec_options = {"noise_model" : None} if args.nonoise else {},
         #api=args.api
         )
-

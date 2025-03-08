@@ -33,8 +33,10 @@ hamiltonians = [
     HamLibData('Fermi-Hubbard-1D', 'FH_D-1.hdf5', f'{_base_url}condensedmatter/fermihubbard/FH_D-1.zip'),
     HamLibData('Bose-Hubbard-1D', 'BH_D-1_d-4.hdf5', f'{_base_url}condensedmatter/bosehubbard/BH_D-1_d-4.zip'),
     HamLibData('Heisenberg', 'heis.hdf5', f'{_base_url}condensedmatter/heisenberg/heis.zip'),
-    HamLibData('Max3Sat', 'random_max3sat-hams.hdf5', f'{_base_url}binaryoptimization/max3sat/random/random_max3sat-hams.hdf5.zip')
+    HamLibData('Max3Sat', 'random_max3sat-hams.hdf5', f'{_base_url}binaryoptimization/max3sat/random/random_max3sat-hams.hdf5.zip'),
+    HamLibData('MaxCut', 'ham-graph-circulant.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-circulant.zip')
 ]
+
 
 def create_full_filenames(hamiltonian_name):
     """
@@ -431,7 +433,6 @@ def view_hdf5_structure():
     extract_variable_ranges(file_input)
     generate_json_for_hdf5_input(file_input)
 
-
 #######################
 # MAIN
 
@@ -456,6 +457,9 @@ def get_args():
     parser.add_argument("--nonoise", "-non", action="store_true", help="Use Noiseless Simulator")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose")
     return parser.parse_args()
+ 
+ 
+ 
  
 # if main, execute method
 if __name__ == '__main__':   

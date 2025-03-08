@@ -26,5 +26,9 @@
       "U": "{U}",
       "enc": "{enc}",
       "d": "4"
+    },
+    "ham-graph-circulant.hdf5": {
+      "circ-n": "{n_qubits}",
+      "offsets": "1-2"
     }
   }
