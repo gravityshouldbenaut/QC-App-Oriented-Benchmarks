@@ -378,6 +378,7 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
     fidelities = []
     number_of_qubits = []
     energies = []
+    times = []
     
     print(f"{benchmark_name} Benchmark Program - Qiskit")
     
@@ -475,22 +476,34 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
             global bitstring_dict
 
             # create the HamLibSimulation kernel, random pauli bitstring, and the associated Hamiltonian operator
-            qc, bitstring, ham_op = HamiltonianSimulation(
-                num_qubits, 
-                K=K, t=t,
-                hamiltonian = hamiltonian, 
-                init_state = init_state,
-                method = method, 
-                use_inverse_flag = use_inverse_flag,
-                random_pauli_flag = random_pauli_flag, 
-                random_init_flag = random_init_flag)
+            
+            #Samarth: add loop for more trotter steps, which in this case would mean iterating from K to K+10
+            i = 0
+            while i <= 10:
+            	trotterSteps = K+i
+            	qc, bitstring, ham_op = HamiltonianSimulation(
+                	num_qubits, 
+                	K=trotterSteps, t=t,
+                	hamiltonian = hamiltonian, 
+                	init_state = init_state,
+                	method = method, 
+                	use_inverse_flag = use_inverse_flag,
+                	random_pauli_flag = random_pauli_flag, 
+                	random_init_flag = random_init_flag)
 
-            bitstring_dict[qc.name] = bitstring
-                    
-            metrics.store_metric(num_qubits, circuit_id, 'create_time', time.time() - ts)
+                
+
+            	bitstring_dict[qc.name] = bitstring
+            	print(qc)
+            	metrics.store_metric(num_qubits, circuit_id, 'create_time', time.time() - ts)
 
             # Submit circuit for execution on target (simulator, cloud simulator, or hardware)
-            ex.submit_circuit(qc, num_qubits, circuit_id, num_shots)
+            	ex.submit_circuit(qc, num_qubits, circuit_id, num_shots)
+            	
+            	#Samarth: append times (which is the total time of evolution, t, divided by the total number of timesteps, which would be K+10 in our case 		here, and then mulitply by the trotterSteps used in this specific run
+            	times.append(trotterSteps*(t/(K+10)))
+            	#Samarth: increase incrementing variable i by 1 to move the while loop along 
+            	i = i+1 
         
         # Wait for some active circuits to complete; report metrics when groups complete
         ex.throttle_execution(metrics.finalize_group)
@@ -521,6 +534,12 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
     plt.plot(number_of_qubits, energies) 
     plt.title("Qubits vs Energy for This Set of Trotter Steps")
     plt.xlabel("Number of Qubits per Run")
+    plt.ylabel("Energy per Run")
+    plt.show()
+    
+    plt.plot(times, energies) 
+    plt.title("Time vs Energy for This Set of Trotter Steps")
+    plt.xlabel("Time")
     plt.ylabel("Energy per Run")
     plt.show()
 
