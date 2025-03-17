@@ -593,15 +593,20 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
     print("trotterstepsets",len(timesPerTrotterStep[1]))
     print("len of energies", len(allEnergies))
     energiesPerTrotterSet = []
+    magnetizationsPerTrotterSet = []
     stopVal = 0
     for j in range(0, len(trotterStepSets)):	
     	if j == 0:
     	   energiesToPlotPerTrotterStepSet = allEnergies[0:trotterStepSets[j]]
+    	   magnetizationsToPlotPerTrotterStepSet = magnetizations[0][0:trotterStepSets[j]]
+    	   magnetizationsPerTrotterSet.append(magnetizationsToPlotPerTrotterStepSet)
     	   energiesPerTrotterSet.append(energiesToPlotPerTrotterStepSet)
     	   stopVal = trotterStepSets[j]
     	else:
     	   energiesToPlotPerTrotterStepSet = allEnergies[stopVal:trotterStepSets[j]+stopVal]
     	   energiesPerTrotterSet.append(energiesToPlotPerTrotterStepSet)
+    	   magnetizationsToPlotPerTrotterStepSet = magnetizations[0][stopVal:trotterStepSets[j]+stopVal]
+    	   magnetizationsPerTrotterSet.append(magnetizationsToPlotPerTrotterStepSet)
     	   stopVal = stopVal + trotterStepSets[j]
     	   print("in loop")
     print("energiesPerTrotterSet", energiesPerTrotterSet)
@@ -615,7 +620,20 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
     		txt_file.write(str(timesPerTrotterStep[lineIndex]) + "\n")
     		txt_file.write("Energies" + "\n")
     		txt_file.write(str(energiesPerTrotterSet[lineIndex]) + "\n")
+    		txt_file.write("Magnetizations" + "\n")
+    		txt_file.write(str(magnetizationsPerTrotterSet[lineIndex]) + "\n")
     		lineIndex = lineIndex + 1 
+
+    for k in range(0, len(trotterStepSets)):
+    	plotLabel = str(trotterStepSets[k]) + " Trotter Steps"
+    	plt.plot(timesPerTrotterStep[k], magnetizationsPerTrotterSet[k], label=plotLabel, marker='o') 
+    plt.title("Time vs Magnetization (F) for Numerous Sets of Trotter Steps", y=1.08)
+    plt.xlabel("Time (a.u.)")
+    plt.ylabel("Magnetization (a.u.)")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("maxcutgnp2_100000shots_aersimulator_60timeevol_timevsmagnetization.png")
+    plt.show()  
 
     for k in range(0, len(trotterStepSets)):
     	plotLabel = str(trotterStepSets[k]) + " Trotter Steps"
@@ -625,7 +643,7 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
     plt.ylabel("Energy (a.u.)")
     plt.legend()
     plt.grid(True)
-    plt.savefig("maxcutgnp2_100000shots_aersimulator_60timeevol.png")
+    plt.savefig("maxcutgnp2_100000shots_aersimulator_60timeevol_timevsenergy.png")
     plt.show()
 
 #######################
