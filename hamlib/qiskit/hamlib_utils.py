@@ -33,8 +33,17 @@ hamiltonians = [
     HamLibData('Fermi-Hubbard-1D', 'FH_D-1.hdf5', f'{_base_url}condensedmatter/fermihubbard/FH_D-1.zip'),
     HamLibData('Bose-Hubbard-1D', 'BH_D-1_d-4.hdf5', f'{_base_url}condensedmatter/bosehubbard/BH_D-1_d-4.zip'),
     HamLibData('Heisenberg', 'heis.hdf5', f'{_base_url}condensedmatter/heisenberg/heis.zip'),
-    HamLibData('Max3Sat', 'random_max3sat-hams.hdf5', f'{_base_url}binaryoptimization/max3sat/random/random_max3sat-hams.hdf5.zip'),
-    HamLibData('MaxCut', 'ham-graph-circulant.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-circulant.zip')
+    HamLibData('Max3Sat', 'random_max3sat-hams.hdf5', f'{_base_url}binaryoptimization/max3sat/random/random_max3sat-hams.zip'),
+    HamLibData('MaxCutCirculant', 'ham-graph-circulant.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-circulant.zip'),
+    HamLibData('MaxCutReg3', 'ham-graph-regular_reg-3.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-regular_reg-3.zip'),
+    HamLibData('MaxCutReg4', 'ham-graph-regular_reg-4.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-regular_reg-4.zip'),
+    HamLibData('MaxCutReg5', 'ham-graph-regular_reg-5.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-regular_reg-5.zip'),
+    HamLibData('MaxCutReg6', 'ham-graph-regular_reg-6.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-regular_reg-6.zip'),
+    HamLibData('MaxCutGNP2', 'ham-graph-gnp_k-2.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-gnp_k-2.zip'),
+    HamLibData('MaxCutGNP3', 'ham-graph-gnp_k-3.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-gnp_k-3.zip'),
+    HamLibData('MaxCutGNP4', 'ham-graph-gnp_k-4.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-gnp_k-4.zip'),
+    HamLibData('MaxCutGNP5', 'ham-graph-gnp_k-5.hdf5', f'{_base_url}binaryoptimization/maxcut/random/ham-graph-gnp_k-5.zip')
+    
 ]
 
 

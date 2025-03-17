@@ -264,7 +264,14 @@ def create_circuit(
         # print("Raw Hamiltonian Data: ", data)
         
         # get the Hamiltonian operator as SparsePauliOp and its size from the data
+        #Samarth: commented this out 
         ham_op, num_qubits = process_data(data)
+        
+        #Samarth:attempt to combine 2 hamiltonians 
+        #ham_op1, num_qubits = process_data(data)
+        #ham_op2, num_qubits = process_data(data)
+        #ham_op = ham_op1.compose(ham_op2)
+    
 
         # print("Number of qubits:", num_qubits)
         if verbose:

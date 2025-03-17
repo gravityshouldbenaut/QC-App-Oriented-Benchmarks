@@ -30,5 +30,41 @@
     "ham-graph-circulant.hdf5": {
       "circ-n": "{n_qubits}",
       "offsets": "1-2"
+    },
+   "ham-graph-regular_reg-3.hdf5": {
+      "reg": "3",
+      "n": "4",
+      "rinst": "00"
+    },
+   "ham-graph-regular_reg-4.hdf5": {
+      "reg": "4",
+      "n": "{n_qubits}",
+      "rinst": "00"
+    },
+   "ham-graph-regular_reg-5.hdf5": {
+      "reg": "5",
+      "n": "{n_qubits}",
+      "rinst": "00"
+    },
+   "ham-graph-regular_reg-6.hdf5": {
+      "reg": "6",
+      "n": "{n_qubits}",
+      "rinst": "00"
+    },
+   "ham-graph-gnp_k-2.hdf5": {
+      "gnp-k_2_n": "{n_qubits}",
+      "rinst": "00"
+    },
+   "ham-graph-gnp_k-3.hdf5": {
+      "gnp-k_3_n": "{n_qubits}",
+      "rinst": "00"
+    },
+   "ham-graph-gnp_k-4.hdf5": {
+      "gnp-k_4_n": "{n_qubits}",
+      "rinst": "00"
+    },
+   "ham-graph-gnp_k-5.hdf5": {
+      "gnp-k_5_n": "{n_qubits}",
+      "rinst": "00"
     }
   }

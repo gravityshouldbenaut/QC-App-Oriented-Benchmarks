@@ -17,7 +17,7 @@ import sys
 import time
 import math
 import numpy as np
-
+import pandas as pd 
 
 sys.path[1:1] = ["_common", "_common/qiskit"]
 sys.path[1:1] = ["../../_common", "../../_common/qiskit"]
@@ -150,7 +150,7 @@ def analyze_and_print_result(
         qc_initial = initial_state(n_spins=num_qubits, init_state=init_state)
         
         # get Hamiltonian operator by creating entire circuit (DEVNOTE: need to not require whole circuit)
-        _, _, ham_op, _ = create_circuit(n_spins=num_qubits, init_state=init_state)
+        _, _, 	ham_op, _ = create_circuit(n_spins=num_qubits, init_state=init_state)
         
         # compute the expected  distribution after exact evolution
         correct_dist = HamiltonianSimulationExact(qc_initial, n_spins=num_qubits,
@@ -377,8 +377,15 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
     #Samarth: Setting up arrays of fidelities, number of qubits, and energies
     fidelities = []
     number_of_qubits = []
+    number_of_qubits_energies_and_times = []
     energies = []
     times = []
+    magnetizations = []
+    trotterStepSets = [25, 50, 75, 100, 200, 300, 400, 500, 600]
+    timesPerTrotterStep = []
+    for item in trotterStepSets:
+    	timesPerTrotterStep.append([])
+    allEnergies = []
     
     print(f"{benchmark_name} Benchmark Program - Qiskit")
     
@@ -419,7 +426,16 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
         t = 1.0
     
     ################################
-    
+    valid_qubits = get_valid_qubits(min_qubits, max_qubits, skip_qubits)
+    for num_qubits in valid_qubits:
+        number_of_qubits_energies_and_times.append(num_qubits)
+        energyArray = []
+        timesArray = []
+        magnetizationArray = []
+        times.append(timesArray)
+        energies.append(energyArray)
+        magnetizations.append(magnetizationArray)
+        
     # Initialize metrics module
     metrics.init_metrics()
 
@@ -435,9 +451,13 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
         #Samarth: add energy
         _, _, ham_op, _ = create_circuit(n_spins=num_qubits, init_state=init_state)
         energy = estimate_expectation(counts, ham_op)
-        print("energy", energy)
-        energies.append(energy)
-    	
+        allEnergies.append(energy)
+        index = 0 
+        for numQubits in number_of_qubits_energies_and_times:
+            if(numQubits == num_qubits):
+               energies[index].append(energy)
+            index = index+1
+  	    
         metrics.store_metric(num_qubits, type, 'fidelity', expectation_a)
 
     # Initialize execution module using the execution result handler above and specified backend_id
@@ -453,9 +473,11 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
     # for num_qubits in range(min_qubits, max_qubits + 1, skip_qubits):
     
     # for HamLib, determine available widths and loop over those 
+    indexInNumQubits = 0
     valid_qubits = get_valid_qubits(min_qubits, max_qubits, skip_qubits)
     for num_qubits in valid_qubits:
-    
+        #number_of_qubits_energies_and_times.append(num_qubits)
+        
         # Reset random seed
         np.random.seed(0)
 
@@ -478,38 +500,44 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
             # create the HamLibSimulation kernel, random pauli bitstring, and the associated Hamiltonian operator
             
             #Samarth: add loop for more trotter steps, which in this case would mean iterating from K to K+10
-            i = 0
-            while i <= 10:
-            	trotterSteps = K+i
-            	qc, bitstring, ham_op = HamiltonianSimulation(
-                	num_qubits, 
-                	K=trotterSteps, t=t,
-                	hamiltonian = hamiltonian, 
-                	init_state = init_state,
-                	method = method, 
-                	use_inverse_flag = use_inverse_flag,
-                	random_pauli_flag = random_pauli_flag, 
-                	random_init_flag = random_init_flag)
+            
+            trotterStepSetIndex = 0
+            for trotterStepsSet in trotterStepSets:
+            	totalTrotterStepsWanted = trotterStepsSet - 1
+            	i = 0
+            	while i <= totalTrotterStepsWanted:
+            		trotterSteps = K+i
+            		qc, bitstring, ham_op = HamiltonianSimulation(num_qubits, K=trotterSteps, t=t, hamiltonian = hamiltonian, init_state = init_state, method = method, use_inverse_flag = use_inverse_flag, random_pauli_flag = random_pauli_flag, random_init_flag = random_init_flag)
+            		bitstring_dict[qc.name] = bitstring
+            		#print(qc)
+            		metrics.store_metric(num_qubits, circuit_id, 'create_time', time.time() - ts)
+            		# Submit circuit for execution on target (simulator, cloud simulator, or hardware)	
+            		ex.submit_circuit(qc, num_qubits, circuit_id, num_shots)
+            		#Samarth: append times (which is the total time of evolution, t, divided by the total number of timesteps, which would be K+10 in our case 		here, and then mulitply by the trotterSteps used in this specific run
+            		trotterStepSize = t/(K+totalTrotterStepsWanted)
+            		times[indexInNumQubits].append(trotterSteps*trotterStepSize)
+            		timesPerTrotterStep[trotterStepSetIndex].append(trotterSteps*trotterStepSize)
+            		#Samarth: naive magnetization calculation considering beta=gamma=trotterstepsize
+            		if num_qubits == 2:
+            			magnetization = num_qubits * math.sin(4*trotterStepSize) * math.sin(4*trotterStepSize)
+            			magnetizations[indexInNumQubits].append(magnetization)	
+            		elif num_qubits > 2: 
+            			magnetization = num_qubits/2 * math.sin(4*trotterStepSize) * math.sin(4*trotterStepSize)
+            			magnetizations[indexInNumQubits].append(magnetization)
+            		#times.append(trotterSteps*(t/(K+totalTrotterStepsWanted)))
+            		#Samarth: increase incrementing variable i by 1 to move the while loop along 
+            		i = i+1 
+            	trotterStepSetIndex = trotterStepSetIndex + 1 		
 
-                
-
-            	bitstring_dict[qc.name] = bitstring
-            	print(qc)
-            	metrics.store_metric(num_qubits, circuit_id, 'create_time', time.time() - ts)
-
-            # Submit circuit for execution on target (simulator, cloud simulator, or hardware)
-            	ex.submit_circuit(qc, num_qubits, circuit_id, num_shots)
-            	
-            	#Samarth: append times (which is the total time of evolution, t, divided by the total number of timesteps, which would be K+10 in our case 		here, and then mulitply by the trotterSteps used in this specific run
-            	times.append(trotterSteps*(t/(K+10)))
-            	#Samarth: increase incrementing variable i by 1 to move the while loop along 
-            	i = i+1 
-        
         # Wait for some active circuits to complete; report metrics when groups complete
         ex.throttle_execution(metrics.finalize_group)
+        indexInNumQubits = indexInNumQubits + 1 
     
     # Wait for all active circuits to complete; report metrics when groups complete
+
+    print("times", times)
     ex.finalize_execution(metrics.finalize_group)
+
 
     ##########
     
@@ -525,22 +553,79 @@ def run(min_qubits: int = 2, max_qubits: int = 8, max_circuits: int = 1,
 
     #Samarth: make plot of number of qubits and fidelitity for each qubit run
     import matplotlib.pyplot as plt
+    print("number of qubits energies and times", number_of_qubits_energies_and_times)
+    print("times", len(times))
+    
+    print("energies", len(energies))
     plt.plot(number_of_qubits, fidelities) 
     plt.title("Qubits vs Fidelity for This Set of Trotter Steps")
     plt.xlabel("Number of Qubits per Run")
     plt.ylabel("Fidelity per Run")
     plt.show()
     
-    plt.plot(number_of_qubits, energies) 
-    plt.title("Qubits vs Energy for This Set of Trotter Steps")
-    plt.xlabel("Number of Qubits per Run")
-    plt.ylabel("Energy per Run")
-    plt.show()
+    #plt.plot(number_of_qubits_energies_and_times, energies) 
+    #plt.title("Qubits vs Energy for This Set of Trotter Steps")
+    #plt.xlabel("Number of Qubits per Run")
+    #plt.ylabel("Energy per Run")
+    #plt.show()
     
-    plt.plot(times, energies) 
+ 
+    for i in range(0, len(number_of_qubits_energies_and_times)):
+    	plotLabel = str(number_of_qubits_energies_and_times[i]) + " number of qubits"
+    	plt.plot(times[i], energies[i], label=plotLabel, marker='*') 
     plt.title("Time vs Energy for This Set of Trotter Steps")
     plt.xlabel("Time")
     plt.ylabel("Energy per Run")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    for i in range(0, len(number_of_qubits_energies_and_times)):
+    	plotLabel = str(number_of_qubits_energies_and_times[i]) + " number of qubits"
+    	plt.plot(times[i], magnetizations[i], label=plotLabel, marker='*') 
+    plt.title("Time vs Magnetization for This Set of Trotter Steps")
+    plt.xlabel("Time")
+    plt.ylabel("Magnetization per Run")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    print("trotterstepsets",len(timesPerTrotterStep[1]))
+    print("len of energies", len(allEnergies))
+    energiesPerTrotterSet = []
+    stopVal = 0
+    for j in range(0, len(trotterStepSets)):	
+    	if j == 0:
+    	   energiesToPlotPerTrotterStepSet = allEnergies[0:trotterStepSets[j]]
+    	   energiesPerTrotterSet.append(energiesToPlotPerTrotterStepSet)
+    	   stopVal = trotterStepSets[j]
+    	else:
+    	   energiesToPlotPerTrotterStepSet = allEnergies[stopVal:trotterStepSets[j]+stopVal]
+    	   energiesPerTrotterSet.append(energiesToPlotPerTrotterStepSet)
+    	   stopVal = stopVal + trotterStepSets[j]
+    	   print("in loop")
+    print("energiesPerTrotterSet", energiesPerTrotterSet)
+    print("len energiesPerTrotterSet", len(energiesPerTrotterSet))
+    
+    with open("maxcutgnp2_100000shots_aersimulator_60timeevol.txt", "w") as txt_file:
+    	lineIndex = 0
+    	for line in trotterStepSets:	
+    		txt_file.write(str(line) + " Trotter Steps" + "\n") 
+    		txt_file.write("Times"+ "\n")
+    		txt_file.write(str(timesPerTrotterStep[lineIndex]) + "\n")
+    		txt_file.write("Energies" + "\n")
+    		txt_file.write(str(energiesPerTrotterSet[lineIndex]) + "\n")
+    		lineIndex = lineIndex + 1 
+
+    for k in range(0, len(trotterStepSets)):
+    	plotLabel = str(trotterStepSets[k]) + " Trotter Steps"
+    	plt.plot(timesPerTrotterStep[k], energiesPerTrotterSet[k], label=plotLabel, marker='o') 
+    plt.title("Time vs Energy for Numerous Sets of Trotter Steps", y=1.08)
+    plt.xlabel("Time (a.u.)")
+    plt.ylabel("Energy (a.u.)")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("maxcutgnp2_100000shots_aersimulator_60timeevol.png")
     plt.show()
 
 #######################

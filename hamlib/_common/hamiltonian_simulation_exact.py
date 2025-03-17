@@ -48,9 +48,11 @@ def HamiltonianSimulation_Noiseless(qc, num_qubits, circuit_id: str="0", num_sho
     """
     
     # DEVNOTE: this number might need to change based on number of qubits
-    num_shots = 100000
+    #num_shots = 100000
+    #Samarth: change num_shots
+    num_shots = 100000	
     
-    backend = Aer.get_backend("qasm_simulator")
+    backend = Aer.get_backend("qasm_simulator")	
     
     # Transpile and run the circuits  
     transpiled_qc = transpile(qc, backend, optimization_level=0)
